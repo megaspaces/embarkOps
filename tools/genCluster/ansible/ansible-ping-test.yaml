@@ -1,0 +1,85 @@
+---
+- name: ping test
+  become: true
+  hosts: servers
+  vars_files:
+  - vars.yaml
+  gather_facts: false
+  tasks:
+  - name: hosts ping test
+    ping:
+    ignore_errors: true
+
+  - name: external network ping test
+    shell: ping -c 1 -w 2 8.8.8.8
+    ignore_errors: true
+
+- name: cluster-1 network ping test
+  become: true
+  hosts: cluster-1
+  vars_files:
+  - vars.yaml
+  gather_facts: false
+  tasks:
+  - name: cluster-1 management network ping nest
+    shell: ping -c 1 -w 15  {{host2_br_mgmt}} && ping -c 1 -w 15 {{host3_br_mgmt}}
+    ignore_errors: true
+    
+  - name: cluster-1 tenant network ping test
+    shell: ping -c 1 -w 15  {{host2_br_tenant}} && ping -c 1 -w 15 {{host3_br_tenant}}
+    ignore_errors: true
+
+  - name: cluster-1 storage network ping test
+    shell: ping -c 1 -w 15 {{host2_br_storage}} && ping -c 1 -w 15 {{host3_br_storage}}
+    ignore_errors: true
+
+  - name: cluster-1 load balance network ping test
+    shell: ping -c 1 -w 15 {{host2_br_lb}} && ping -c 1 -w 15 {{host3_br_lb}}
+    ignore_errors: true
+
+- name: cluster-2 network ping test
+  become: true
+  hosts: cluster-2
+  vars_files:
+  - vars.yaml
+  gather_facts: false
+  tasks:
+  - name: cluster-2 management network ping nest
+    shell: ping -c 1 -w 15  {{host1_br_mgmt}} && ping -c 1 -w 15 {{host3_br_mgmt}}
+    ignore_errors: true
+
+  - name: cluster-2 tenant network ping test
+    shell: ping -c 1 -w 15  {{host1_br_tenant}} && ping -c 1 -w 15 {{host3_br_tenant}}
+    ignore_errors: true
+
+  - name: cluster-2 storage network ping test
+    shell: ping -c 1 -w 15 {{host1_br_storage}} && ping -c 1 -w 15 {{host3_br_storage}}
+    ignore_errors: true
+
+  - name: cluster-2 load balance network ping test
+    shell: ping -c 1 -w 15 {{host1_br_lb}} && ping -c 1 -w 15 {{host3_br_lb}}
+    ignore_errors: true
+
+- name: cluster-3 network ping test
+  become: true
+  hosts: cluster-3
+  vars_files:
+  - vars.yaml
+  gather_facts: false
+  tasks:
+  - name: cluster-3 management network ping nest
+    shell: ping -c 1 -w 15  {{host1_br_mgmt}} && ping -c 1 -w 15 {{host2_br_mgmt}}
+    ignore_errors: true
+
+  - name: cluster-3 tenant network ping test
+    shell: ping -c 1 -w 15  {{host1_br_tenant}} && ping -c 1 -w 15 {{host2_br_tenant}}
+    ignore_errors: true
+
+  - name: cluster-3 storage network ping test
+    shell: ping -c 1 -w 15 {{host1_br_storage}} && ping -c 1 -w 15 {{host2_br_storage}}
+    ignore_errors: true
+
+  - name: cluster-3 load balance network ping test
+    shell: ping -c 1 -w 15 {{host1_br_lb}} && ping -c 1 -w 15 {{host2_br_lb}}
+    ignore_errors: true
+

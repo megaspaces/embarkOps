@@ -1,0 +1,55 @@
+---
+- name: Configure host netplan
+  become: true
+  hosts: servers 
+  vars:
+    cvm_address: '{{ ansible_host }}/24'
+    public_address: '{{ ansible_public_address }}'
+    gateway_address: '{{ ansible_gateway_address }}'
+    end_ip: '{{ ansible_end_ip }}'
+    mgmt_address: '{{ ansible_mgmt_address }}'
+    tenant_address: '{{ ansible_tenant_address }}'
+    storage_address: '{{ ansible_storage_address }}'
+    lbaas_address: '{{ ansible_lbaas_address }}'
+ 
+  tasks:
+
+    - name: copy netplan 51 config file
+      template: src=templates/51-config.yml.j2 dest=/etc/netplan/51-config.yaml
+      notify: apply netplan
+
+    - name: copy netplan 52 config file
+      template: src=templates/52-config.yml.j2 dest=/etc/netplan/52-config.yaml
+      notify: apply netplan
+
+  handlers:
+
+    - name: apply netplan
+      shell: netplan apply
+
+- name: Configure ssh
+  become: true
+  hosts: servers 
+  vars:
+    newpassword: 'admin123'
+
+  tasks:
+
+    - name: copy netplan file
+      copy: src=files/sshd_config dest=/etc/ssh/sshd_config
+      notify: apply ssh
+
+    - name: change root password
+      user:
+        name: root
+        update_password: always
+        password: "{{ newpassword|password_hash('sha512') }}"
+
+  handlers:
+
+    - name: apply ssh
+      service: 
+        name: ssh
+        state: restarted
+
+

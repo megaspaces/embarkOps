@@ -1,0 +1,33 @@
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp2s0:
+      addresses:
+      - {{ public_address }}/24
+      dhcp4: false
+      gateway4: {{ gateway_address }}
+      nameservers:
+        addresses: [192.168.203.100]
+      dhcp4: false
+      mtu: 1500
+    enp3s0:
+      addresses:
+      - {{ mgmt_address }}/24
+      dhcp4: false
+      mtu: 1500
+    enp4s0:
+      addresses:
+      - {{ tenant_address }}/24
+      dhcp4: false
+      mtu: 1500
+    enp5s0:
+      addresses:
+      - {{ storage_address }}/24
+      dhcp4: false
+      mtu: 1500
+    enp6s0:
+      dhcp4: false
+      addresses:
+      - {{ lbaas_address}}/24
+      mtu: 1500

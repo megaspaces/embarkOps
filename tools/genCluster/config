@@ -1,0 +1,71 @@
+#!/bin/bash
+
+TOP=$PWD
+
+IMAGE=/data/images/ubuntu-20.04.qcow2
+
+# OS 종류
+# - command: osinfo-query os
+# - sudo apt install libosinfo-bin
+# - OS_VARIANT=auto
+#OS_VARIANT="ubuntu20.04"
+OS_VARIANT="rocky9.0"
+
+#KVM_TEMPLATE=$TOP/ubuntu20_template
+KVM_TEMPLATE=$TOP/rocky_template
+
+# VM Resource
+RAM=65538
+CPU=12
+DISK=120G
+
+# User Account
+# - ID/Password
+N2USER=ubuntu
+N2USER_PW=admin
+
+# - ID without Password
+RUSER=thummim
+
+# Instance Name Prefix
+INSTANCE_NAME_PREFIX=cluster
+
+# Intefaces
+NET_1=br_cvm
+NET_2=br_public
+NET_3=br_mgmt
+NET_4=br_tenant
+NET_5=br_storage
+NET_6=br_lbaas
+
+# NET_1 : Address
+PREFIX="12.0.0."
+START_ADDR=41
+
+# NET_2 : Address
+PUBLIC_PREFIX="192.168.196."
+PUBLIC_START_ADDR=110
+GATEWAY_ADDR="192.168.196.1"
+
+# NET_3 : MGMT
+MGMT_PREFIX="10.1.1."
+MGMT_START_ADDR=11
+
+# NET_4 : TENANT
+TENANT_PREFIX="20.1.1."
+TENANT_START_ADDR=11
+
+# NET_5 : STORAGE
+STORAGE_PREFIX="30.1.1."
+STORAGE_START_ADDR=11
+
+# NET_6 : LBAAS
+LBAAS_PREFIX="40.1.1."
+LBAAS_START_ADDR=11
+
+# Volumes
+VOL_COUNT=3
+VOL_SIZE=100
+
+# The range of VM count
+VM_COUNT=3

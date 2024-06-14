@@ -1,0 +1,115 @@
+#!/bin/bash
+
+source $PWD/DS_PARAM_CONFIG
+
+echo "#!/bin/bash" > $OUTPUT
+echo "" >> $OUTPUT
+echo "#Create directory for base images" >> $OUTPUT
+echo "sudo mkdir -p $INSTANCE_DIR" >> $OUTPUT
+echo "" >> $OUTPUT
+echo "# Create a disk image based on the Ubuntu image:" >> $OUTPUT
+echo "sudo qemu-img create -f qcow2 -F qcow2 -o backing_file=$IMAGE $INSTANCE" >> $OUTPUT
+#echo "sudo qemu-img create -f qcow2 -b $IMAGE $INSTANCE" >> $OUTPUT
+
+echo "" >> $OUTPUT
+echo "# Let’s take a look at the image:" >> $OUTPUT
+echo "sudo qemu-img info $INSTANCE" >> $OUTPUT
+
+echo "" >> $OUTPUT
+echo "# Current virtual size is 2.2 GB, let’s set it to $DISK_SIZE :" >> $OUTPUT
+echo "sudo qemu-img resize $INSTANCE $DISK_SIZE" >> $OUTPUT
+echo "sudo qemu-img info $INSTANCE" >> $OUTPUT
+
+echo "" >> $OUTPUT
+echo "# Create meta-data:" >> $OUTPUT
+echo "cat >DS_PARAM_META_DATA <<EOF" >> $OUTPUT
+echo "local-hostname: $HOSTNAME" >> $OUTPUT
+echo "EOF" >> $OUTPUT
+
+echo "" >> $OUTPUT
+echo "# Read public key into environment variable:" >> $OUTPUT
+
+# ssh-keygen
+PUB_KEY=`cat ~/.ssh/id_rsa.pub`
+ENCRYPT_PASSWD=`mkpasswd --method=des $N2USER_PW`
+
+echo "" >> $OUTPUT
+echo "# Create user-data:" >> $OUTPUT
+echo "cat >DS_PARAM_USER_DATA <<EOF" >> $OUTPUT
+echo "#cloud-config" >> $OUTPUT
+echo "users:" >> $OUTPUT
+echo "  - name: $N2USER" >> $OUTPUT
+echo "    lock_passwd: false" >> $OUTPUT
+echo "    passwd: $ENCRYPT_PASSWD" >> $OUTPUT
+echo "    sudo: ['ALL=(ALL) NOPASSWD:ALL']" >> $OUTPUT
+echo "    groups: wheel" >> $OUTPUT  # 'sudo' 그룹 대신 'wheel' 그룹 사용
+echo "    shell: /bin/bash" >> $OUTPUT
+echo "  - name: $USERNAME" >> $OUTPUT
+echo "    ssh-authorized-keys:" >> $OUTPUT
+echo "      - $PUB_KEY" >> $OUTPUT
+echo "    sudo: ['ALL=(ALL) NOPASSWD:ALL']" >> $OUTPUT
+echo "    groups: wheel" >> $OUTPUT  # 'sudo' 그룹 대신 'wheel' 그룹 사용
+echo "    shell: /bin/bash" >> $OUTPUT
+echo "yum_repos:" >> $OUTPUT
+echo "  rocky_baseos:" >> $OUTPUT
+echo "    baseurl: http://dl.rockylinux.org/vault/rocky/9.0/BaseOS/x86_64/os/" >> $OUTPUT
+echo "    enabled: true" >> $OUTPUT
+echo "    gpgcheck: true" >> $OUTPUT
+echo "    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rockyofficial" >> $OUTPUT
+echo "  rocky_appstream:" >> $OUTPUT
+echo "    baseurl: http://dl.rockylinux.org/vault/rocky/9.0/AppStream/x86_64/os/" >> $OUTPUT
+echo "    enabled: true" >> $OUTPUT
+echo "    gpgcheck: true" >> $OUTPUT
+echo "    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rockyofficial" >> $OUTPUT
+echo "package_update: true" >> $OUTPUT
+echo "package_upgrade: true" >> $OUTPUT
+echo "packages:" >> $OUTPUT
+echo "  - sshpass" >> $OUTPUT
+echo "  - tree" >> $OUTPUT
+echo "  - vim" >> $OUTPUT
+echo "  - git" >> $OUTPUT
+echo "runcmd:" >> $OUTPUT
+echo "  - echo \"alias so='source ~/.bashrc'\" >> /home/$USERNAME/.bashrc" >> $OUTPUT
+echo "  - echo \"alias vi='vim'\" >> /home/$USERNAME/.bashrc" >> $OUTPUT
+echo "  - echo \"alias ..='cd ..'\" >> /home/$USERNAME/.bashrc" >> $OUTPUT
+echo "  - echo \"alias ...='cd ../..'\" >> /home/$USERNAME/.bashrc" >> $OUTPUT
+echo "  - echo \"alias ....='cd ../../..'\" >> /home/$USERNAME/.bashrc" >> $OUTPUT
+echo "  - echo \"alias .....='cd ../../../..'\" >> /home/$USERNAME/.bashrc" >> $OUTPUT
+echo "  - echo \"LS_COLORS='di=33:fi=0:ln=31:pi=5:so=5:bd=5:cd=5:or=31:mi=0:ex=35:*.rpm=90'\" >> /home/$USERNAME/.bashrc" >> $OUTPUT
+echo "  - echo \"export LS_COLORS\" >> /home/$USERNAME/.bashrc" >> $OUTPUT
+echo "  - echo \"# git clone --depth=1 https://github.com/amix/vimrc.git ~/.vim_runtime\" >> /home/$USERNAME/.bashrc" >> $OUTPUT
+echo "  - echo \"# sh ~/.vim_runtime/install_basic_vimrc.sh\" >> /home/$USERNAME/.bashrc" >> $OUTPUT
+echo "  - sudo ip addr add DS_PARAM_ADDR/24 dev enp1s0" >> $OUTPUT
+echo "EOF" >> $OUTPUT
+
+echo "" >> $OUTPUT
+echo "# Create a disk to attach with Cloud-Init configuration:" >> $OUTPUT
+INSTANCE_DISK=$INSTANCE_DIR/$INSTANCE_NAME-cidata.iso >> $OUTPUT
+echo "sudo genisoimage  -output $INSTANCE_DISK -volid cidata -joliet -rock DS_PARAM_USER_DATA DS_PARAM_META_DATA" >> $OUTPUT
+
+echo "" >> $OUTPUT
+
+echo "# Start the virtual machine with two disks attached: $INSTANCE_NAME.qcow2 as root disk and $INSTANCE_NAME-cidata.iso as disk with Cloud-Init configuration." >> $OUTPUT
+
+# CORE_PARAM
+#KVM_OPTIONS="--cpu host-passthrough --os-type linux --os-variant $OS_VARIANT"
+KVM_OPTIONS="--os-type linux --os-variant $OS_VARIANT"
+CORE_PARAM="--name $HOSTNAME --ram $RAM --vcpus=$CPU $KVM_OPTIONS"
+
+# Disk
+DISK_LIST="--disk path=$INSTANCE,format=qcow2"
+if [ $VOL_COUNT -gt 0 ]; then
+    VOL_RANGE=$(seq 1 $VOL_COUNT)
+    for NUM in $VOL_RANGE
+    do
+        DISK_PATH=$INSTANCE_DIR/disk-${VOL_SIZE}g-$NUM.img
+        echo "sudo qemu-img create -f qcow2 -o size=${VOL_SIZE}G $DISK_PATH" >> $OUTPUT
+        DISK_LIST+=" --disk path=$DISK_PATH,format=qcow2"
+    done
+fi
+DISK_LIST+=" --disk $INSTANCE_DISK,device=cdrom"
+
+echo "DISL_LIST: $DISK_LIST"
+
+echo "sudo virt-install --connect qemu:///system --virt-type kvm $CORE_PARAM $DISK_LIST --import $NET_LIST --noautoconsole" >> $OUTPUT
+

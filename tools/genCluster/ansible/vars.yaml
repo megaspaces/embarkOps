@@ -1,0 +1,13 @@
+host1_br_mgmt: 10.1.1.11
+host2_br_mgmt: 10.1.1.12
+host3_br_mgmt: 10.1.1.13
+host1_br_tenant: 20.1.1.11
+host2_br_tenant: 20.1.1.12
+host3_br_tenant: 20.1.1.13
+host1_br_storage: 30.1.1.11
+host2_br_storage: 30.1.1.12
+host3_br_storage: 30.1.1.13
+host1_br_lb: 40.1.1.11
+host2_br_lb: 40.1.1.12
+host3_br_lb: 40.1.1.13
+
